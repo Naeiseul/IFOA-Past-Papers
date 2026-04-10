@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CP3 Study Buddy</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0f1117;
+    color: #e0e0e6;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    color: #f0f0f5;
+    margin-bottom: 0.3rem;
+  }
+
+  .subtitle {
+    color: #888;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+  }
+
+  /* API key bar */
+  .api-section {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    align-items: center;
+  }
+
+  .api-section input {
+    flex: 1;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #2a2d38;
+    background: #1a1c25;
+    color: #ccc;
+    font-size: 0.85rem;
+    font-family: monospace;
+  }
+
+  .api-section .saved-badge {
+    background: #1e3a2f;
+    color: #4ade80;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: none;
+  }
+
+  /* Textarea */
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    padding: 1rem;
+    border-radius: 10px;
+    border: 1px solid #2a2d38;
+    background: #1a1c25;
+    color: #e0e0e6;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  textarea:focus, .api-section input:focus {
+    outline: none;
+    border-color: #5b6ef5;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #aaa;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Buttons */
+  .actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+
+  button {
+    padding: 0.7rem 1.4rem;
+    border-radius: 8px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+  }
+
+  button:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: #5b6ef5;
+    color: #fff;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: #232632;
+    color: #bbb;
+  }
+
+  /* Response area */
+  .response-box {
+    margin-top: 2rem;
+    padding: 1.2rem;
+    border-radius: 10px;
+    background: #16181f;
+    border: 1px solid #2a2d38;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    font-size: 0.93rem;
+    display: none;
+  }
+
+  .response-box h3 {
+    font-family: 'DM Serif Display', serif;
+    color: #f0f0f5;
+    margin-bottom: 0.8rem;
+    font-size: 1.1rem;
+  }
+
+  .loading {
+    color: #888;
+    font-style: italic;
+  }
+
+  /* Prompt selector */
+  .prompt-chips {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    border: 1px solid #2a2d38;
+    background: #1a1c25;
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .chip:hover, .chip.active {
+    border-color: #5b6ef5;
+    color: #fff;
+    background: #252840;
+  }
+
+  .error { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>CP3 Study Buddy</h1>
+  <p class="subtitle">Paste a question from your IFoA past papers. Gemini AI will help you study.</p>
+
+  <!-- API Key -->
+  <div class="api-section">
+    <input type="password" id="apiKey" placeholder="Paste your Google AI Studio API key here">
+    <button class="btn-secondary" onclick="saveKey()">Save</button>
+    <span class="saved-badge" id="savedBadge">✓ Saved</span>
+  </div>
+
+  <!-- What kind of help -->
+  <label>What kind of help?</label>
+  <div class="prompt-chips">
+    <span class="chip active" data-mode="explain" onclick="setMode(this)">Explain the approach</span>
+    <span class="chip" data-mode="mark" onclick="setMode(this)">Mark scheme tips</span>
+    <span class="chip" data-mode="common" onclick="setMode(this)">Common mistakes</span>
+    <span class="chip" data-mode="simplify" onclick="setMode(this)">Simplify for me</span>
+  </div>
+
+  <!-- Question input -->
+  <label>Paste your question below</label>
+  <textarea id="question" placeholder="e.g. Describe the key risks an insurer faces when pricing a new critical illness product, and outline how you would allow for these risks in the pricing basis."></textarea>
+
+  <div class="actions">
+    <button class="btn-primary" id="askBtn" onclick="askGemini()">Ask Gemini</button>
+    <button class="btn-secondary" onclick="clearAll()">Clear</button>
+  </div>
+
+  <!-- Response -->
+  <div class="response-box" id="response">
+    <h3>Gemini's Response</h3>
+    <div id="responseText"></div>
+  </div>
+
+</div>
+
+<script>
+  let currentMode = 'explain';
+
+  // Save API key to sessionStorage (stays while tab is open)
+  function saveKey() {
+    const key = document.getElementById('apiKey').value.trim();
+    if (key) {
+      sessionStorage.setItem('gemini_key', key);
+      const badge = document.getElementById('savedBadge');
+      badge.style.display = 'inline-block';
+      setTimeout(() => badge.style.display = 'none', 2000);
+    }
+  }
+
+  // Load key on page load
+  window.onload = function() {
+    const saved = sessionStorage.getItem('gemini_key');
+    if (saved) document.getElementById('apiKey').value = saved;
+  };
+
+  function setMode(el) {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    currentMode = el.dataset.mode;
+  }
+
+  function getSystemPrompt() {
+    const prompts = {
+      explain: "You are an IFoA actuarial exam tutor. The student is studying for CP3 (Communications Practice). Explain clearly how to approach and answer this exam question. Structure your response with: 1) What the examiner is looking for, 2) A suggested structure for the answer, 3) Key points to include. Be specific to actuarial practice.",
+      mark: "You are an IFoA CP3 examiner. Based on this question, explain: 1) How marks are likely allocated, 2) What earns full marks vs partial marks, 3) Key phrases or points the examiner wants to see. Reference IFoA marking conventions.",
+      common: "You are an IFoA actuarial exam tutor for CP3. For this question, list: 1) The most common mistakes students make, 2) What students typically forget to include, 3) How to avoid these pitfalls. Be practical and specific.",
+      simplify: "You are a friendly tutor helping someone understand this IFoA CP3 question. Break it down in very simple language: 1) What is the question really asking? 2) What real-world actuarial scenario does it relate to? 3) A simple outline of how to answer it. Avoid jargon where possible."
+    };
+    return prompts[currentMode];
+  }
+
+  async function askGemini() {
+    const key = sessionStorage.getItem('gemini_key') || document.getElementById('apiKey').value.trim();
+    const question = document.getElementById('question').value.trim();
+
+    if (!key) { alert('Please paste and save your API key first.'); return; }
+    if (!question) { alert('Please paste a question.'); return; }
+
+    // Save key if not saved yet
+    if (!sessionStorage.getItem('gemini_key')) {
+      sessionStorage.setItem('gemini_key', key);
+    }
+
+    const btn = document.getElementById('askBtn');
+    const responseBox = document.getElementById('response');
+    const responseText = document.getElementById('responseText');
+
+    btn.disabled = true;
+    btn.textContent = 'Thinking...';
+    responseBox.style.display = 'block';
+    responseText.innerHTML = '<span class="loading">Gemini is thinking... this may take a few seconds.</span>';
+
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: getSystemPrompt() }] },
+            contents: [{ parts: [{ text: question }] }]
+          })
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || 'API request failed');
+      }
+
+      const data = await res.json();
+      const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
+
+      // Basic markdown-ish formatting
+      responseText.innerHTML = answer
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+
+    } catch (err) {
+      responseText.innerHTML = `<span class="error">Error: ${err.message}</span><br><br>Check that your API key is correct. You can get one free at <a href="https://aistudio.google.com" target="_blank" style="color:#5b6ef5">aistudio.google.com</a>.`;
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Ask Gemini';
+  }
+
+  function clearAll() {
+    document.getElementById('question').value = '';
+    document.getElementById('response').style.display = 'none';
+  }
+</script>
+</body>
+</html>
